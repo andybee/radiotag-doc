@@ -29,6 +29,7 @@ Andy Buckingham (togglebit), Robin Cooksey (Frontier Silicon)
 - Draft 6: 2014-02-
     - Updated terminology to reflect CPA terms
     - Replaced Tag auth procedure with draft CPA procedure
+    - Converted responses to JSON format
 
 ### URL
 
@@ -67,7 +68,7 @@ various bits of the API hang together.
 For full details about each endpoint provided by the tag service, read
 the [API](#api) section.
 
-Finally, to see how the Atom format is used in tag responses, what each
+Finally, to see how the JSON is formatted in tag responses, what each
 element contains and what limits apply, see [data formats](#data-formats).
 
 ## Concepts
@@ -96,8 +97,7 @@ How that information is interpreted is up to the broadcaster.
 ### Tag responses
 
 The content of the *response* to a tag request is up to the
-broadcaster but must follow the [Atom Syndication
-Format](http://tools.ietf.org/html/rfc4287) as [specified
+broadcaster but must follow the JSON structure as [specified
 below](#tag-data). A tag response could contain programme, now playing
 metadata, an advertising message or the response to a call for action.
 
@@ -263,7 +263,7 @@ Unix Time          The number of seconds elapsed since midnight Coordinated Univ
 Requests pass information in a combination of HTTP headers and form
 encoded POST parameters.
 
-Responses pass data back in a combination of HTTP headers and XML.
+Responses pass data back in a combination of HTTP headers and JSON.
 
 While headers are shown here in a canonical form, due to the fact that
 proxies and other intermediaries may adjust HTTP headers, both client
@@ -320,7 +320,7 @@ time     Whole number of seconds since 00:00a.m Jan 1 1970 UTC (Unix Epoch)
 HTTP Status Code  HTTP Status   Explanation
 ----------------  ------------  ------------------------------------------------
 200               OK            The service does not store tags but has returned
-                                metadata in Atom format
+                                metadata
 
 201               Created       The service has stored the requested tag
 
@@ -345,7 +345,7 @@ RadioTAG-Service-Provider    The display name of the tag service provider
 
 ##### Body
 
-On a successful request (status 200 or 201), the body contains an Atom
+On a successful request (status 200 or 201), the body contains a JSON
 feed containing a single entry representing the tag. See [Data
 formats](#data-formats) below.
 
@@ -358,11 +358,10 @@ explanation of why the request failed.
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1312301004
+{ "station": "0.c224.ce15.ce1.dab", "time": 1312301004 }
 ~~~~
 
 ##### Response
@@ -372,10 +371,9 @@ HTTP/1.1 401 Unauthorized↵
 Date: Tue, 02 Aug 2011 16:03:24 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "client"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: text/html;charset=utf-8↵
-Content-Length: 18↵
+Content-Type: application/json↵
 ↵
-Must request client token
+{ "error": "Must request client token" }
 ~~~~
 
 #### Example 2 - `POST /tag` with a valid client token
@@ -385,11 +383,10 @@ Must request client token
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization: Bearer alsdkfmasdfn1j23nsfjn1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1312301004
+{ "station": "0.c224.ce15.ce1.dab", "time": 1312301004 }
 ~~~~
 
 ##### Response
@@ -399,35 +396,23 @@ HTTP/1.1 201 Created↵
 Date: Tue, 02 Aug 2011 16:03:25 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 957↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>PM</title>
-  <link href="http://radiotag.example.com"/>
-  <link href="http://radiotag.example.com" rel="self"/>
-  <updated>2011-08-02T17:03:24+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:fb669d2c-63b3-420b-9dd6-131f5d58e68a</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=204"/>
-    <id>urn:uuid:fb669d2c-63b3-420b-9dd6-131f5d58e68a</id>
-    <updated>2011-08-02T17:03:24+01:00</updated>
-    <published>2011-08-02T17:03:24+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "fb669d2c-63b3-420b-9dd6-131f5d58e68a",↵
+      "title": "PM",↵
+      "time": "2011-08-02T17:22:08+01:00",↵
+      "description": "Eddie Mair presents the day's top stories.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b012wjd3_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b012wjd3?t=1328"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 Note that the response header contains the `WWW-Authenticate` header
@@ -441,11 +426,10 @@ supports user tagging.
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization: Bearer kldhvkjxhoiqwyeh3khkj3↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1312302129
+{ "station": "0.c224.ce15.ce1.dab", "time": 1312302129 }
 ~~~~
 
 ##### Response
@@ -454,35 +438,23 @@ station=0.c224.ce15.ce1.dab&time=1312302129
 HTTP/1.1 201 Created↵
 Date: Tue, 02 Aug 2011 16:22:09 GMT↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 958↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>PM</title>
-  <link href="http://radiotag.example.com"/>
-  <link href="http://radiotag.example.com" rel="self"/>
-  <updated>2011-08-02T17:22:09+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:8facc0c0-ce13-4349-8664-dc71d55c6c97</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=1329"/>
-    <id>urn:uuid:8facc0c0-ce13-4349-8664-dc71d55c6c97</id>
-    <updated>2011-08-02T17:22:09+01:00</updated>
-    <published>2011-08-02T17:22:09+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "fb669d2c-63b3-420b-9dd6-131f5d58e68a",↵
+      "title": "PM",↵
+      "time": "2011-08-02T17:22:08+01:00",↵
+      "description": "Eddie Mair presents the day's top stories.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b012wjd3_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b012wjd3?t=1328"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 Note that the response header does not contain any `WWW-Authenticate`
@@ -494,11 +466,10 @@ headers but does contain the paired user account name.
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1312195118
+{ "station": "0.c224.ce15.ce1.dab", "time": 1312195118 }
 ~~~~
 
 ##### Response
@@ -508,35 +479,23 @@ HTTP/1.1 200 OK↵
 Date: Mon, 01 Aug 2011 10:38:38 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 992↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Meet David Sedaris</title>
-  <link href="http://radiotag.example.com"/>
-  <link href="http://radiotag.example.com" rel="self"/>
-  <updated>2011-08-01T11:38:38+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Meet David Sedaris</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b01211y4?t=518"/>
-    <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-    <updated>2011-08-01T11:38:38+01:00</updated>
-    <published>2011-08-01T11:38:38+01:00</published>
-    <summary>'Me Talk Pretty One Day' and 'It's Catching'.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "5001c814-7a28-42a4-b35a-eef17abc7249",↵
+      "title": "Meet David Sedaris",↵
+      "time": "2011-08-01T11:38:38+01:00",↵
+      "description": "'Me Talk Pretty One Day' and 'It's Catching'.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b01211y4?t=518"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Example 5 - `POST /tag` against a service that provides only unidentified tagging
@@ -545,11 +504,10 @@ Content-Length: 992↵
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1312195118
+{ "station": "0.c224.ce15.ce1.dab", "time": 1312195118 }
 ~~~~
 
 ##### Response
@@ -558,35 +516,23 @@ station=0.c224.ce15.ce1.dab&time=1312195118
 HTTP/1.1 200 OK↵
 Date: Mon, 01 Aug 2011 10:38:38 GMT↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 992↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Meet David Sedaris</title>
-  <link href="http://radiotag.example.com"/>
-  <link href="http://radiotag.example.com" rel="self"/>
-  <updated>2011-08-01T11:38:38+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Meet David Sedaris</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b01211y4?t=518"/>
-    <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-    <updated>2011-08-01T11:38:38+01:00</updated>
-    <published>2011-08-01T11:38:38+01:00</published>
-    <summary>'Me Talk Pretty One Day' and 'It's Catching'.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "5001c814-7a28-42a4-b35a-eef17abc7249",↵
+      "title": "Meet David Sedaris",↵
+      "time": "2011-08-01T11:38:38+01:00",↵
+      "description": "'Me Talk Pretty One Day' and 'It's Catching'.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b01211y4?t=518"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 Note that no `WWW-Authenticate` headers are issued.
@@ -668,61 +614,47 @@ HTTP/1.1 200 OK↵
 Date: Tue, 02 Aug 2011 16:22:08 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 974↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-       xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Tag List</title>
-  <link href="http://radiotag.example.com/tags"/>
-  <link href="http://radiotag.example.com/tags" rel="self"/>
-  <updated>2011-08-02T17:22:08+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:6a041e97-65bb-4b12-82da-c1b373731905</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=1328"/>
-    <id>urn:uuid:9f61f2c1-f3f7-4ff7-bc61-32f0e468054d</id>
-    <updated>2011-08-02T17:22:08+01:00</updated>
-    <published>2011-08-02T17:22:08+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "fb669d2c-63b3-420b-9dd6-131f5d58e68a",↵
+      "title": "PM",↵
+      "time": "2011-08-02T17:22:08+01:00",↵
+      "description": "Eddie Mair presents the day's top stories.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b012wjd3_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b012wjd3?t=1328"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 ## Data formats
 
 ### Tag data
 
-All server responses containing tags use the [Atom Syndication
-Format](http://tools.ietf.org/html/rfc4287) to represent tags, with some
-extensions under a `RadioTAG` namespace.
-
-In the following, the element prefix "radiotag:" indicates the RadioTag
-namespace. All other elements are assumed to be from the Atom namespace.
-
-Atom defines these elements as required:
+All server responses containing tags use JSON to represent tags.
 
 -----------------------------------------------------------------------------
-Element  Description                                               Max length
--------  --------------------------------------------------------  ----------
-id       unique identifier for this tag                            48
-         [ref](http://tools.ietf.org/html/rfc4287#section-4.2.6)
+Property     Description                                           Max length
+-----------  ----------------------------------------------------  ----------
+id           unique identifier for this tag                        48
 
-title    broadcaster generated title                               128
-         [ref](http://tools.ietf.org/html/rfc4287#section-4.2.14)
+title        broadcaster generated title                           128
 
-updated  the datetime the tag was modified                         20
-         [ref](http://tools.ietf.org/html/rfc4287#section-4.2.15)
+time         the datetime of creation (= tag time)                 20
+
+description  text only - i.e. must not include HTML tags           180
+
+service      service object (see below)
+
+image_url    link to 100x100 image representing the tag            255
+
+link_url     a user accessible url for the tag                     255
 
 -----------------------------------------------------------------------------
 
@@ -730,124 +662,80 @@ All dates are UTC in ISO format ([ISO
 8601](http://en.wikipedia.org/wiki/ISO8601) or [RFC
 3339](http://tools.ietf.org/html/rfc3339)), e.g. `2011-08-08T09:00:00Z`.
 
-The RadioTAG specification also requires the following:
-
------------------------------------------------------------------------------
-Element           Description                                      Max length
-----------------  -----------------------------------------------  ----------
-author            name of tag service provider (e.g. BBC, Global)  16
-
-published         the datetime of creation (= tag time)            20
-
-summary           text only - i.e. must not include HTML tags      180
-
-link rel="image"  link to 100x100 image representing the tag       255
-
-link rel="self"   a user accessible url for the tag                255
-
-radiotag:service  the human-readable name of the service tagged    16
-
-radiotag:sid      RadioDNS service identifier                      32
-
------------------------------------------------------------------------------
-
-Note the difference here between `id` and `link rel="self"`. `id` is a
-globally unique identifier. `link rel="self"` gives the url as visible
-to the device/user (i.e. scoped by the auth token).
-
-Also note that we are interpreting the `published` entry as equivalent
-to the tag time. The `updated` element can be used to indicate that the
-tag data has been updated, e.g. the description has changed.
-
 The 255 character limit on urls is based on a strict reading of the note
 in paragraph 3 of [RFC 2616 Section
 3.2.1](http://tools.ietf.org/html/rfc2616#section-3.2.1).
 
-The `radiotag:service` limit matches the `mediumNameType` in the EPG
+The Service object is described as follows:
+
+-----------------------------------------------------------------------------
+Property          Description                                      Max length
+----------------  -----------------------------------------------  ----------
+id                RadioDNS service identifier                      32
+
+name              the human-readable name of the service tagged    16
+
+-----------------------------------------------------------------------------
+
+The `name` limit matches the `mediumNameType` in the EPG
 specifications (and also the DAB label length).
 
 The example below shows these elements in context:
 
 ~~~~ {.example}
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Meet David Sedaris</title>
-  <link href="http://radiotag.example.com"/>
-  <link href="http://radiotag.example.com" rel="self"/>
-  <updated>2011-08-01T11:38:38+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Meet David Sedaris</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b01211y4?t=518"/>
-    <id>urn:uuid:5001c814-7a28-42a4-b35a-eef17abc7249</id>
-    <updated>2011-08-01T11:38:38+01:00</updated>
-    <published>2011-08-01T11:38:38+01:00</published>
-    <summary>'Me Talk Pretty One Day' and 'It's Catching'.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "5001c814-7a28-42a4-b35a-eef17abc7249",↵
+      "title": "Meet David Sedaris",↵
+      "time": "2011-08-01T11:38:38+01:00",↵
+      "description": "'Me Talk Pretty One Day' and 'It's Catching'.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://node1.bbcimg.co.uk/iplayer/images/episode/b01211y4_150_84.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b01211y4?t=518"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 ### Tags data
 
 ~~~~ {.example}
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Tag List</title>
-  <link href="http://radiotag.example.com/tags"/>
-  <link href="http://radiotag.example.com/tags" rel="self"/>
-  <updated>2011-08-02T17:22:09+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:bf3e7d30-ccb8-4b45-b438-c790fb2ec5f7</id>
-  <os:totalResults>3</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>3</os:itemsPerPage>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=1329"/>
-    <id>urn:uuid:8facc0c0-ce13-4349-8664-dc71d55c6c97</id>
-    <updated>2011-08-02T17:22:09+01:00</updated>
-    <published>2011-08-02T17:22:09+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=1328"/>
-    <id>urn:uuid:9f61f2c1-f3f7-4ff7-bc61-32f0e468054d</id>
-    <updated>2011-08-02T17:22:08+01:00</updated>
-    <published>2011-08-02T17:22:08+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-  <entry>
-    <title>PM</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://node1.bbcimg.co.uk/iplayer/images/episode/b012wjd3_150_84.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b012wjd3?t=1328"/>
-    <id>urn:uuid:8e67aef6-4e8c-47ac-bc10-f89d4d5bac17</id>
-    <updated>2011-08-02T17:22:08+01:00</updated>
-    <published>2011-08-02T17:22:08+01:00</published>
-    <summary>Eddie Mair presents the day's top stories.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 3↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "5967db0e-dc63-428d-a075-90cf316ded5d",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:50+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    },↵
+    {↵
+      "id": "4b8a1b72-f76b-4dc2-9db8-cb15042454ea",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    },↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 ## Limits
@@ -857,17 +745,15 @@ The example below shows these elements in context:
 ----------------------------------------------------------------------------------------------
 Data element      Max. size in bytes  Notes
 ----------------  ------------------  --------------------------------------------------------
-author            16                  Atom entry
-
-id                48                  Atom entry
+id                48
 
 pin number        10
 
 service id (sid)  32                  As specified by RadioDNS
 
-summary           180                 Atom entry
+summary           180
 
-title             128                 Atom entry (compatible with DAB/RDS Livetext)
+title             128                 Compatible with DAB/RDS Livetext length
 
 token             48
 
@@ -922,11 +808,10 @@ authentication token.
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization:↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319201989
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319201989 }
 ~~~~
 
 ##### Response
@@ -949,9 +834,9 @@ HTTP/1.1 401 Unauthorized↵
 Date: Fri, 21 Oct 2011 12:59:49 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "client"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: text/html;charset=utf-8↵
+Content-Type: application/json↵
 ↵
-Must request client token
+{ "error": "Must request client token" }
 ~~~~
 
 ##### Request
@@ -996,7 +881,7 @@ these can be exchanged for a client token.
 
 ~~~~ {.example}
 POST /token HTTP/1.1↵
-Content-type: application/x-www-form-urlencoded↵
+Content-type: application/json↵
 Host: ap.bbc.co.uk↵
 ↵
 {
@@ -1032,11 +917,10 @@ of a POST request to `/tag`.
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization: Bearer alsdkfmasdfn1j23nsfjn1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319201989
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319201989 }
 ~~~~
 
 ##### Response
@@ -1044,7 +928,7 @@ station=0.c224.ce15.ce1.dab&time=1319201989
 The server verifies the request by checking the token against it's nominated
 authorization provider, and if valid creates a tag. The metadata corresponding
 to this tag is returned in the body of a `201 Created` response, in the
-form of an [Atom](http://tools.ietf.org/html/rfc4287) document. See
+form of a JSON object. See
 [Data formats](#data-formats) for more details.
 
 An example entry for a tag created during an episode of a BBC Radio 4
@@ -1055,35 +939,23 @@ HTTP/1.1 201 Created↵
 Date: Fri, 21 Oct 2011 12:59:49 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 1032↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Feedback</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T13:59:49+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:661417da-cb8d-4fd0-a8fd-9b55ed2086d7</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1789"/>
-    <id>urn:uuid:661417da-cb8d-4fd0-a8fd-9b55ed2086d7</id>
-    <updated>2011-10-21T13:59:49+01:00</updated>
-    <published>2011-10-21T13:59:49+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press OK
@@ -1114,7 +986,7 @@ Host: radiotag.bbc.co.uk↵
 
 ##### Response
 
-The server responds with an Atom feed containing a list of tags created
+The server responds with a JSON feed containing a list of tags created
 for this device.
 
 ~~~~ {.example}
@@ -1122,35 +994,23 @@ HTTP/1.1 200 OK↵
 Date: Fri, 21 Oct 2011 12:59:49 GMT↵
 RadioTAG-Service-Provider: BBC↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 1042↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Tag List</title>
-  <link href="http://radiotag.bbc.co.uk/tags"/>
-  <link href="http://radiotag.bbc.co.uk/tags" rel="self"/>
-  <updated>2011-10-21T13:59:49+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:8eca1859-bb85-4c23-ba06-d078f6bfc9f5</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1789"/>
-    <id>urn:uuid:661417da-cb8d-4fd0-a8fd-9b55ed2086d7</id>
-    <updated>2011-10-21T13:59:49+01:00</updated>
-    <published>2011-10-21T13:59:49+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press Tag
@@ -1164,11 +1024,10 @@ the `Tag` button as before.
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization: Bearer alsdkfmasdfn1j23nsfjn1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319201989
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319201989 }
 ~~~~
 
 ##### Response
@@ -1184,35 +1043,23 @@ HTTP/1.1 201 Created↵
 Date: Fri, 21 Oct 2011 12:59:49 GMT↵
 RadioTAG-Service-Provider: BBC↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 1032↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Feedback</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T13:59:49+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:4b8a1b72-f76b-4dc2-9db8-cb15042454ea</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1789"/>
-    <id>urn:uuid:4b8a1b72-f76b-4dc2-9db8-cb15042454ea</id>
-    <updated>2011-10-21T13:59:49+01:00</updated>
-    <published>2011-10-21T13:59:49+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press Register
@@ -1226,7 +1073,7 @@ but this time with a request for a device code.
 
 ~~~~ {.example}
 POST /associate HTTP/1.1↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: ap.bbc.co.uk↵
 ↵
 {
@@ -1351,11 +1198,10 @@ stored against the user's account.
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
 Authorization: Bearer alsdkfmasdfn1j23nsfjn1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319201990
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319201990 }
 ~~~~
 
 ##### Response
@@ -1364,35 +1210,23 @@ station=0.c224.ce15.ce1.dab&time=1319201990
 HTTP/1.1 201 Created↵
 Date: Fri, 21 Oct 2011 12:59:50 GMT↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 1032↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Feedback</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T13:59:50+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:5967db0e-dc63-428d-a075-90cf316ded5d</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1790"/>
-    <id>urn:uuid:5967db0e-dc63-428d-a075-90cf316ded5d</id>
-    <updated>2011-10-21T13:59:50+01:00</updated>
-    <published>2011-10-21T13:59:50+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press Tags
@@ -1400,7 +1234,7 @@ Content-Length: 1032↵
 The client can again request a list of tags, this time using the new
 authentication token. The server has migrated the tags created while the
 client was unpaired to the user's account, so all three tags created
-above are returned in the Atom feed.
+above are returned in the JSON feed.
 
 ##### Request
 
@@ -1417,57 +1251,41 @@ Host: radiotag.bbc.co.uk↵
 HTTP/1.1 200 OK↵
 Date: Fri, 21 Oct 2011 12:59:50 GMT↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 2268↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>Tag List</title>
-  <link href="http://radiotag.bbc.co.uk/tags"/>
-  <link href="http://radiotag.bbc.co.uk/tags" rel="self"/>
-  <updated>2011-10-21T13:59:50+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:93beb9c2-0b8d-49ad-a813-c1e6120f63b9</id>
-  <os:totalResults>3</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>3</os:itemsPerPage>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1790"/>
-    <id>urn:uuid:5967db0e-dc63-428d-a075-90cf316ded5d</id>
-    <updated>2011-10-21T13:59:50+01:00</updated>
-    <published>2011-10-21T13:59:50+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1789"/>
-    <id>urn:uuid:4b8a1b72-f76b-4dc2-9db8-cb15042454ea</id>
-    <updated>2011-10-21T13:59:49+01:00</updated>
-    <published>2011-10-21T13:59:49+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-  <entry>
-    <title>Feedback</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zsx2?t=1789"/>
-    <id>urn:uuid:661417da-cb8d-4fd0-a8fd-9b55ed2086d7</id>
-    <updated>2011-10-21T13:59:49+01:00</updated>
-    <published>2011-10-21T13:59:49+01:00</published>
-    <summary>Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 3↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "5967db0e-dc63-428d-a075-90cf316ded5d",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:50+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    },↵
+    {↵
+      "id": "4b8a1b72-f76b-4dc2-9db8-cb15042454ea",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    },↵
+    {↵
+      "id": "661417da-cb8d-4fd0-a8fd-9b55ed2086d7",↵
+      "title": "Feedback",↵
+      "time": "2011-10-21T13:59:49+01:00",↵
+      "description": "Listener views on local radio cuts. Roger hears how to secure inclusion on R4's Last Word.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zsx2.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zsx2?t=1789"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 ### Unidentified to user identity
@@ -1492,11 +1310,10 @@ same as in the client case above.
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319201989
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319201989 }
 ~~~~
 
 ##### Response
@@ -1514,35 +1331,23 @@ HTTP/1.1 200 OK↵
 Date: Fri, 21 Oct 2011 13:00:59 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 973↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>The Archers</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T14:00:59+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:3bfaa9dd-11ed-45f9-8f3c-6587db086b04</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>The Archers</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zs13?t=59"/>
-    <id>urn:uuid:3bfaa9dd-11ed-45f9-8f3c-6587db086b04</id>
-    <updated>2011-10-21T14:00:59+01:00</updated>
-    <published>2011-10-21T14:00:59+01:00</published>
-    <summary>David brings shocking news.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "3bfaa9dd-11ed-45f9-8f3c-6587db086b04",↵
+      "title": "The Archers",↵
+      "time": "2011-10-21T14:00:59+01:00",↵
+      "description": "David brings shocking news.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zs13?t=59"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press OK
@@ -1569,9 +1374,9 @@ HTTP/1.1 401 Unauthorized↵
 Date: Fri, 21 Oct 2011 13:00:59 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: text/html;charset=utf-8↵
+Content-Type: application/json↵
 ↵
-Must request user token
+{ "error": "Must request user token" }
 ~~~~
 
 #### Press Tag
@@ -1580,11 +1385,10 @@ Must request user token
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319202059
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319202059 }
 ~~~~
 
 ##### Response
@@ -1597,35 +1401,23 @@ HTTP/1.1 200 OK↵
 Date: Fri, 21 Oct 2011 13:01:00 GMT↵
 WWW-Authenticate: CPA auth_uri="https://www.bbc.co.uk/id/device/token" "user"↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 973↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>The Archers</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T14:00:59+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:8ea43558-70c2-4a4a-aeb9-8ffeee700898</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>The Archers</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zs13?t=59"/>
-    <id>urn:uuid:8ea43558-70c2-4a4a-aeb9-8ffeee700898</id>
-    <updated>2011-10-21T14:00:59+01:00</updated>
-    <published>2011-10-21T14:00:59+01:00</published>
-    <summary>David brings shocking news.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "3bfaa9dd-11ed-45f9-8f3c-6587db086b04",↵
+      "title": "The Archers",↵
+      "time": "2011-10-21T14:00:59+01:00",↵
+      "description": "David brings shocking news.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zs13?t=59"↵
+    }↵
+  ]↵
+}
 ~~~~
 
 #### Press Register
@@ -1751,12 +1543,11 @@ acquired `Authorization` header token value:
 
 ~~~~ {.example}
 POST /tag HTTP/1.1↵
-Authorization: ???↵
-Content-Length: 43↵
-Content-Type: application/x-www-form-urlencoded↵
+Authorization: Bearer alsdkfmasdfn1j23nsfjn1↵
+Content-Type: application/json↵
 Host: radiotag.bbc.co.uk↵
 ↵
-station=0.c224.ce15.ce1.dab&time=1319202060
+{ "station": "0.c224.ce15.ce1.dab", "time": 1319202060 }
 ~~~~
 
 ##### Response
@@ -1769,33 +1560,21 @@ device and via the web.
 HTTP/1.1 201 Created↵
 Date: Fri, 21 Oct 2011 13:01:00 GMT↵
 RadioTAG-Service-Provider: BBC↵
-Content-Type: application/xml;charset=utf-8↵
-Content-Length: 973↵
+Content-Type: application/json↵
 ↵
-<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:radiotag="http://radiodns.org/2011/radiotag"
-      xmlns:os="http://a9.com/-/spec/opensearch/1.1/">
-  <title>The Archers</title>
-  <link href="http://radiotag.bbc.co.uk"/>
-  <link href="http://radiotag.bbc.co.uk" rel="self"/>
-  <updated>2011-10-21T14:01:00+01:00</updated>
-  <author>
-    <name>BBC</name>
-  </author>
-  <id>urn:uuid:fcbb6008-aa54-45b4-91c9-78ec0655f9d7</id>
-  <os:totalResults>1</os:totalResults>
-  <os:startIndex>1</os:startIndex>
-  <os:itemsPerPage>1</os:itemsPerPage>
-  <entry>
-    <title>The Archers</title>
-    <radiotag:sid>0.c224.ce15.ce1.dab</radiotag:sid>
-    <radiotag:service>BBC Radio 4</radiotag:service>
-    <link rel="image" href="http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg"/>
-    <link rel="canonical" href="http://www.bbc.co.uk/programmes/b015zs13?t=60"/>
-    <id>urn:uuid:fcbb6008-aa54-45b4-91c9-78ec0655f9d7</id>
-    <updated>2011-10-21T14:01:00+01:00</updated>
-    <published>2011-10-21T14:01:00+01:00</published>
-    <summary>David brings shocking news.</summary>
-  </entry>
-</feed>
+{↵
+  "total": 1↵
+  "start_index": 1,↵
+  "events": [↵
+    {↵
+      "id": "3bfaa9dd-11ed-45f9-8f3c-6587db086b04",↵
+      "title": "The Archers",↵
+      "time": "2011-10-21T14:00:59+01:00",↵
+      "description": "David brings shocking news.",↵
+      "service": { "id": "dab:ce1.ce15.c224.0", "name": "BBC Radio 4" },↵
+      "image_url": "http://radiotag.bbc.co.uk/images/episode/b015zs13.jpg",↵
+      "link_url": "http://www.bbc.co.uk/programmes/b015zs13?t=59"↵
+    }↵
+  ]↵
+}
 ~~~~
